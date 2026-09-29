@@ -20,6 +20,7 @@ import MappingEditor, { type MappingRow } from './components/MappingEditor';
 import PreviewPanel from './components/PreviewPanel';
 import RemovalPanel from './components/RemovalPanel';
 import RemovalPreview from './components/RemovalPreview';
+import ExcerptPanel from './components/ExcerptPanel';
 import VersionDiffPanel from './components/VersionDiffPanel';
 import Conflicts from './components/Conflicts';
 import HighlightedText from './components/HighlightedText';
@@ -57,6 +58,9 @@ export default function App() {
   const [diffDraft, setDiffDraft] = useState('');
   const [versionDiff, setVersionDiff] = useState<VersionDiff | null>(null);
 
+  // 条款摘录面板在正文变化（重新解析 / 编辑保存 / 提交 / 撤销）后整组重置
+  const [excerptSeq, setExcerptSeq] = useState(0);
+
   const toMapping = (): MappingEntry[] =>
     rows
       .map((r) => ({ from: Number(r.from), to: Number(r.to) }))
@@ -74,6 +78,7 @@ export default function App() {
     resetRemoval();
     setDiffDraft('');
     setVersionDiff(null);
+    setExcerptSeq((n) => n + 1);
   };
 
   const resetRemoval = () => {
@@ -150,6 +155,7 @@ export default function App() {
       setLastUndo(null);
       resetRemoval();
       setVersionDiff(null);
+      setExcerptSeq((n) => n + 1);
       setNotice(`已原子提交：共更新 ${result.changeCount} 处“第X条”。可撤销本次操作。`);
     } catch (e) {
       const err = e as ClientError;
@@ -249,6 +255,7 @@ export default function App() {
       setCommitted(null);
       setLastUndo(null);
       setVersionDiff(null);
+      setExcerptSeq((n) => n + 1);
       setNotice(
         `已原子裁撤 ${result.deleteCount} 个条款区块，改写 ${result.changeCount} 处引用。可撤销本次操作。`,
       );
@@ -279,6 +286,7 @@ export default function App() {
       setRows(emptyRows());
       resetRemoval();
       setVersionDiff(null);
+      setExcerptSeq((n) => n + 1);
       const opText = result.undone.op === 'remove' ? '条款裁撤' : '改号';
       setNotice(
         `已撤销最近一次${opText}（${result.undone.changeCount} 处引用变更，恢复到操作前文本）。`,
@@ -344,7 +352,7 @@ export default function App() {
       <header>
         <h1>合同条款重编号工作台</h1>
         <p className="subtitle">
-          解析“第X条”定义与引用 · 版本对照（新增/删除/修改/仅改号） · 批量映射改号 · 条款裁撤与引用图影响分析 · 逐处预览 · 原子提交 · 可撤销 · 可导出
+          解析“第X条”定义与引用 · 版本对照（新增/删除/修改/仅改号） · 条款裁撤与引用图影响分析 · 条款摘录（递归收齐引用） · 批量映射改号 · 逐处预览 · 原子提交 · 可撤销 · 可导出
         </p>
       </header>
 
@@ -507,7 +515,10 @@ export default function App() {
             </section>
           )}
 
-          <div className="step">5. 改号映射（可选）</div>
+          <div className="step">5. 条款摘录（可选，只读）：勾选起点 → 沿引用递归收齐 → 复制纯文本</div>
+          <ExcerptPanel key={`excerpt-${doc!.id}-${excerptSeq}`} docId={doc!.id} analysis={analysis} />
+
+          <div className="step">6. 改号映射（可选）</div>
           <MappingEditor
             analysis={analysis}
             rows={rows}
@@ -536,7 +547,7 @@ export default function App() {
             </section>
           )}
 
-          <div className="step">6. 撤销 / 导出</div>
+          <div className="step">7. 撤销 / 导出</div>
           <section className="card final-bar">
             <button type="button" className="btn" onClick={doUndo} disabled={loading}>
               ↩ 撤销最近一次操作（改号 / 裁撤）

@@ -22,6 +22,7 @@ import {
   type RemovalReplacement,
 } from './removal';
 import { diffVersions } from './diff';
+import { buildExcerpt, normalizeExcerptRequest } from './excerpt';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -318,6 +319,25 @@ app.post('/api/documents/:id/diff', (req, res) => {
     return fail(res, 400, 'BAD_REQUEST', '缺少 newContent（新稿纯文本）。');
   }
   res.json({ diff: diffVersions(doc.content, newContent) });
+});
+
+// 条款摘录（只读）：勾选一个或多个条款，沿正文“第X条”引用递归收齐条款，
+// 按原文顺序输出可复制的纯文本。不写库、不改文档、不触碰撤销历史。
+app.post('/api/documents/:id/excerpt', (req, res) => {
+  const id = Number(req.params.id);
+  const doc = requireDoc(res, id);
+  if (!doc) return;
+  const { numbers, errors } = normalizeExcerptRequest(req.body ?? {});
+  if (errors.length > 0) {
+    return fail(res, 409, 'EXCERPT_REJECTED', '摘录请求未通过校验。', { conflicts: errors });
+  }
+  const result = buildExcerpt(doc.content, numbers);
+  if (!result.ok) {
+    return fail(res, 409, 'EXCERPT_CONFLICT', '条款摘录存在未处理问题，已拒绝生成。', {
+      conflicts: result.conflicts,
+    });
+  }
+  res.json({ selected: numbers, excerpt: result.excerpt });
 });
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));

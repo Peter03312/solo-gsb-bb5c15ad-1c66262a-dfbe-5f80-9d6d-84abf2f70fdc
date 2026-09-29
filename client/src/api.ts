@@ -3,6 +3,7 @@ import type {
   ApiError,
   CommitResult,
   DocumentDTO,
+  ExcerptResponse,
   PreviewResult,
   RemovalCommitResult,
   RemovalImpact,
@@ -98,6 +99,13 @@ export const api = {
     return request<{ diff: VersionDiff }>(`/api/documents/${id}/diff`, {
       method: 'POST',
       body: JSON.stringify({ newContent }),
+    });
+  },
+  /** 条款摘录（只读）：勾选起点，沿正文引用递归收齐并输出纯文本 */
+  excerpt(id: number, numbers: number[]) {
+    return request<ExcerptResponse>(`/api/documents/${id}/excerpt`, {
+      method: 'POST',
+      body: JSON.stringify({ numbers }),
     });
   },
 };

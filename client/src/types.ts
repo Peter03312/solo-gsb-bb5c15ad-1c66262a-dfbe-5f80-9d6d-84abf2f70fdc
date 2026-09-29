@@ -200,6 +200,59 @@ export interface ApiError {
   };
 }
 
+// ---------- 条款摘录（只读） ----------
+
+export interface ExcerptRef {
+  number: number;
+  text: string;
+  pos: TextPos;
+  line: string;
+}
+
+export interface ExcerptClause {
+  number: number;
+  heading: string;
+  headingLine: number;
+  startLine: number;
+  endLine: number;
+  seed: boolean;
+  text: string;
+  references: ExcerptRef[];
+}
+
+export interface ExcerptResult {
+  selected: number[];
+  reached: number[];
+  clauses: ExcerptClause[];
+  text: string;
+  count: number;
+}
+
+export interface ExcerptResponse {
+  selected: number[];
+  excerpt: ExcerptResult;
+}
+
+export interface ExcerptConflict {
+  code:
+    | 'EMPTY_SELECTION'
+    | 'INVALID_NUMBER'
+    | 'SELECTION_NOT_DEFINED'
+    | 'DUPLICATE_DEFINITION'
+    | 'MISSING_DEFINITION';
+  message: string;
+  number?: number;
+  positions?: TextPos[];
+  headings?: { number: number; heading: string; pos: TextPos }[];
+  references?: { number: number; pos: TextPos; line: string; ownerNumber: number }[];
+}
+
+export interface ExcerptError {
+  code: string;
+  message: string;
+  conflicts: ExcerptConflict[];
+}
+
 // ---------- 版本对照 ----------
 
 export type DiffStatus = 'added' | 'removed' | 'modified' | 'renumbered' | 'unchanged';
